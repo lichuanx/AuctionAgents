@@ -1,5 +1,6 @@
 import socket
 import random
+import math
 
 
 class AuctionClient(object):
@@ -163,7 +164,7 @@ class AuctionClient(object):
 
         mybidderid is your name: if you want to reference yourself use that.
 
-        players is a list containing all the names of the current players.
+        players is a lists containing all the names of the current players.
 
         standings is a set of nested dictionaries (standings is a dictionary that for each person has another dictionary
         associated with them). standings[name][artist] will return how many paintings "artist" the player "name" currently has.
@@ -209,7 +210,7 @@ class AuctionClient(object):
 
     def first_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 1: First to buy wincondition of any artist wins, highest bidder pays own bid, auction order known."""
-
+        
         # Currently just returns a random bid
         return self.random_bid(standings[mybidderid]['money'])
 
