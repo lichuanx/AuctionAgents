@@ -121,7 +121,11 @@ def second_highest_valuation_strategy(numberbidders, wincondition, artists, valu
         return int(standings[mybidderid]["money"]/10)
 
 
-def first_price_highest_value_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
+def first_price_highest_value_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
+    curr_item = itemsinauction[rd]
+
+    initial_budget = standings[mybidderid]["money"]
+
     total_score = 0
     half_total_score = 0
     for art in artists:
@@ -129,7 +133,68 @@ def first_price_highest_value_strategy(self, numberbidders, wincondition, artist
 
     half_total_score = total_score/2
 
-    money_per_score = half_total_score/
+    remain_score = total_score
+    for i in range(0, rd):
+        remain_score -= values[itemsinauction[i]]
+    
+    already_gain_score = 0
+    for art in artists:
+      already_gain_score += standings[mybidderid][art]*values[art]
+
+    money_per_score = initial_budget/(half_total_score-already_gain_score)
+    
+    print(initial_budget)
+    players_private_values = {}
+    if remain_score > half_total_score:
+        return int(values[curr_item]*money_per_score)
+    else:
+        for player in players:
+            wanted_score = half_total_score
+            gained_score = 0
+            for art in artists:
+                gained_score += standings[player][art]*values[art]
+            wanted_score = wanted_score - gained_score
+            players_private_values[player] = standings[player]["money"] / wanted_score 
+        
+        second_highest = 0
+        my_valuation = 0
+        for player in players:
+          if player == mybidderid:
+            my_valuation = players_private_values[player]
+          elif players_private_values[player] > second_highest:
+            second_highest = players_private_values[player]
+
+          if my_valuation >= second_highest:
+            return int(values[curr_item]*second_highest+1)
+          else:
+            return int(values[curr_item]*my_valuation)
+
+def always_pay_my_valua_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
+    curr_item = itemsinauction[rd]
+    initial_budget = standings[mybidderid]["money"]
+
+    total_score = 0
+    half_total_score = 0
+    for art in artists:
+        total_score += artists[art]*values[art]
+
+    half_total_score = total_score/2
+
+    remain_score = total_score
+    for i in range(0, rd):
+        remain_score -= values[itemsinauction[i]]
+    
+    already_gain_score = 0
+    for art in artists:
+      already_gain_score += standings[mybidderid][art]*values[art]
+    if already_gain_score > half_total_score:
+      return int(initial_budget*random.random()+1)
+    money_per_score = 0
+    if remain_score < half_total_score-already_gain_score:
+        money_per_score = initial_budget/remain_score
+    else:
+        money_per_score = initial_budget/(half_total_score-already_gain_score)
+    return int(values[curr_item]*money_per_score)
 
 
 class AuctionClient(object):
@@ -364,12 +429,15 @@ class AuctionClient(object):
 
     def third_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 3: Highest total value wins, highest bidder pays own bid, auction order known."""
-
-        # Currently just returns a random bid
-        return self.random_bid(standings[mybidderid]['money'])
+        price = first_price_highest_value_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
+        curr_item = itemsinauction[rd]
+        print("myrobot offer: ", curr_item, price)
+        return price
 
     def fourth_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 4: Highest total value wins, highest bidder pays second highest bid, auction order known."""
 
-        # Currently just returns a random bid
-        return self.random_bid(standings[mybidderid]['money'])
+        price = always_pay_my_valua_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
+        curr_item = itemsinauction[rd]
+        print("myrobot offer: ", curr_item, price, standings[mybidderid]["money"])
+        return price
