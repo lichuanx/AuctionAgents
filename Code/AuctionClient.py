@@ -1,24 +1,157 @@
 import socket
 import random
 import math
-import AuctionStrategy
+
+
+def evaluate_sequence(numberbidders, wincondition, artists, rd, itemsinauction, potential_competitors):
+    purpose_score = {}
+    least_win_round = wincondition
+    art_count = {}
+    for art in artists:
+        art_count[art] = 0
+        purpose_score[art] = 0.0
+
+    sum_score = 0
+    inital_score = len(itemsinauction) - rd - 1
+    for i in range(rd, len(itemsinauction)):
+        item = itemsinauction[i]
+        rate = 1/(potential_competitors[item]+1)
+        if art_count[item] < least_win_round:
+            art_count[item] += 1
+        elif art_count[item] == least_win_round:
+            purpose_score[item] += (inital_score)*math.pow(rate, (i-rd+1))
+            sum_score += (inital_score)*math.pow(rate, (i-rd+1))
+        else:
+            search_flag = 0
+            for art in artists:
+                if art_count[art] == least_win_round:
+                    search_flag += 1
+
+            if search_flag == len(artists):
+                break
+
+    for art in artists:
+        purpose_score[art] = purpose_score[art]/sum_score
+
+    print(least_win_round)
+    return purpose_score
+
+
+def evaluate_purpose(players, artists, itemsinauction, winnerarray, mybidderid):
+    purpose_score = {}
+    for art in artists:
+        purpose_score[art] = 0.0
+
+    for player_id in players:
+        if player_id != mybidderid:
+            if player_id in winnerarray:
+                purpose = itemsinauction[winnerarray.index(player_id)]
+                for art in artists:
+                    if art == purpose:
+                        purpose_score[art] += 1.0
+                    else:
+                        purpose_score[art] += 0.0
+            else:
+                for art in artists:
+                    purpose_score[art] += 1.0
+
+    return purpose_score
+
+
+def best_next_sequence_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
+    curr_item = itemsinauction[rd]
+
+    if mybidderid in winnerarray:
+        best_choice = itemsinauction[winnerarray.index(mybidderid)]
+        if best_choice == curr_item and standings[mybidderid][best_choice] == (wincondition-1):
+            return standings[mybidderid]['money']
+        elif best_choice == curr_item and standings[mybidderid][best_choice] > 0:
+            return math.floor(standings[mybidderid]['money']/(wincondition-standings[mybidderid][best_choice]))
+        else:
+            return 0
+    else:
+
+        potential_competitors = evaluate_purpose(
+            players, artists, itemsinauction, winnerarray, mybidderid)
+
+        sequence_priority = evaluate_sequence(
+            numberbidders, wincondition, artists, rd, itemsinauction, potential_competitors)
+
+        max_prob = 0.0
+        for art in sequence_priority:
+            if sequence_priority[art] > max_prob:
+                best_choice = art
+                max_prob = sequence_priority[art]
+
+        print(sequence_priority)
+        if best_choice == curr_item:
+            return math.floor(standings[mybidderid]['money']/wincondition)
+
+        else:
+            return 0
+
+
+def second_highest_valuation_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
+    curr_item = itemsinauction[rd]
+
+    my_valuation = math.ceil(
+        standings[mybidderid]["money"]/(wincondition-standings[mybidderid][curr_item]))
+
+    other_max_valuation = 0
+    other_min_valuation = -1
+    for player in players:
+        if player != mybidderid:
+            private_va = math.floor(
+                standings[player]["money"]/(wincondition-standings[player][curr_item]))
+            if private_va > other_max_valuation:
+                other_max_valuation = private_va
+            if other_min_valuation < 0:
+                other_min_valuation = private_va
+            elif private_va < other_min_valuation:
+                other_min_valuation = private_va
+
+    if my_valuation >= other_max_valuation:
+        if wincondition-standings[mybidderid][curr_item] == 1:
+            return standings[mybidderid]["money"]
+        else:
+            return other_max_valuation
+    elif other_min_valuation*(wincondition-standings[mybidderid][curr_item]) < standings[mybidderid]["money"]:
+        return other_min_valuation
+    else:
+        return int(standings[mybidderid]["money"]/10)
+
+
+def first_price_highest_value_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
+    total_score = 0
+    half_total_score = 0
+    for art in artists:
+        total_score += artists[art]*values[art]
+
+    half_total_score = total_score/2
+
+    money_per_score = half_total_score/
+
 
 class AuctionClient(object):
     """A client for bidding with the AucionRoom"""
+
     def __init__(self, host="localhost", port=8020, mybidderid=None, verbose=False):
         self.verbose = verbose
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((host,port))
+        self.sock.connect((host, port))
         forbidden_chars = set(""" '".,;:{}[]()""")
         if mybidderid:
             if len(mybidderid) == 0 or any((c in forbidden_chars) for c in mybidderid):
-                print("""mybidderid cannot contain spaces or any of the following: '".,;:{}[]()!""")
+                print(
+                    """mybidderid cannot contain spaces or any of the following: '".,;:{}[]()!""")
                 raise ValueError
             self.mybidderid = mybidderid
         else:
-            self.mybidderid = raw_input("Input team / player name : ").strip()  # this is the only thing that distinguishes the clients
+            # this is the only thing that distinguishes the clients
+            self.mybidderid = raw_input("Input team / player name : ").strip()
             while len(self.mybidderid) == 0 or any((c in forbidden_chars) for c in self.mybidderid):
-              self.mybidderid = raw_input("""You input an empty string or included a space  or one of these '".,;:{}[]() in your name which is not allowed (_ or / are all allowed)\n for example Emil_And_Nischal is okay\nInput team / player name: """).strip()
+                self.mybidderid = raw_input(
+                    """You input an empty string or included a space  or one of these '".,;:{}[]() in your name which is not allowed (_ or / are all allowed)\n for example Emil_And_Nischal is okay\nInput team / player name: """).strip()
         self.sock.send(self.mybidderid.encode("utf-8"))
 
         data = self.sock.recv(5024).decode('utf_8')
@@ -26,52 +159,52 @@ class AuctionClient(object):
         if self.verbose:
             print("Have received response of %s" % ' '.join(x))
         if(x[0] != "Not" and len(data) != 0):
-          self.numberbidders = int(x[0])
-          if self.verbose:
-              print("Number of bidders: %d" % self.numberbidders)
-          self.numtypes = int(x[1])
-          if self.verbose:
-              print("Number of types: %d" % self.numtypes)
-          self.numitems = int(x[2])
-          if self.verbose:
-              print("Items in auction: %d" % self.numitems)
-          self.maxbudget = int(x[3])
-          if self.verbose:
-              print("Budget: %d" % self.maxbudget)
-          self.neededtowin = int(x[4])
-          if self.verbose:
-              print("Needed to win: %d" % self.neededtowin)
-          self.order_known = "True" == x[5]
-          if self.verbose:
-              print("Order known: %s" % self.order_known)
-          self.auctionlist = []
-          self.winnerpays = int(x[6])
-          if self.verbose:
-              print("Winner pays: %d" % self.winnerpays)
-          self.values = {}
-          self.artists = {}
-          order_start = 7
-          if self.neededtowin > 0:
-              self.values = None
-              for i in range(7, 7+(self.numtypes*2), 2):
-                  self.artists[x[i]] = int(x[i+1])
-                  order_start += 2
-              if self.verbose:
-                  print("Item types: %s" % str(self.artists))
-          else:
-              for i in range(7, 7+(self.numtypes*3), 3):
-                  self.artists[x[i]] = int(x[i+1])
-                  self.values[x[i]] = int(x[i+2])
-                  order_start += 3
-              if self.verbose:
-                  print("Item types: %s" % str(self.artists))
-                  print ("Values: %s" % str(self.values))
+            self.numberbidders = int(x[0])
+            if self.verbose:
+                print("Number of bidders: %d" % self.numberbidders)
+            self.numtypes = int(x[1])
+            if self.verbose:
+                print("Number of types: %d" % self.numtypes)
+            self.numitems = int(x[2])
+            if self.verbose:
+                print("Items in auction: %d" % self.numitems)
+            self.maxbudget = int(x[3])
+            if self.verbose:
+                print("Budget: %d" % self.maxbudget)
+            self.neededtowin = int(x[4])
+            if self.verbose:
+                print("Needed to win: %d" % self.neededtowin)
+            self.order_known = "True" == x[5]
+            if self.verbose:
+                print("Order known: %s" % self.order_known)
+            self.auctionlist = []
+            self.winnerpays = int(x[6])
+            if self.verbose:
+                print("Winner pays: %d" % self.winnerpays)
+            self.values = {}
+            self.artists = {}
+            order_start = 7
+            if self.neededtowin > 0:
+                self.values = None
+                for i in range(7, 7+(self.numtypes*2), 2):
+                    self.artists[x[i]] = int(x[i+1])
+                    order_start += 2
+                if self.verbose:
+                    print("Item types: %s" % str(self.artists))
+            else:
+                for i in range(7, 7+(self.numtypes*3), 3):
+                    self.artists[x[i]] = int(x[i+1])
+                    self.values[x[i]] = int(x[i+2])
+                    order_start += 3
+                if self.verbose:
+                    print("Item types: %s" % str(self.artists))
+                    print("Values: %s" % str(self.values))
 
-          if self.order_known:
-              for i in range(order_start, order_start+self.numitems):
-                  self.auctionlist.append(x[i])
-              if self.verbose:
-                  print("Auction order: %s" % str(self.auctionlist))
+            if self.order_known:
+                for i in range(order_start, order_start+self.numitems):
+                    self.auctionlist.append(x[i])
+                if self.verbose:
+                    print("Auction order: %s" % str(self.auctionlist))
 
         self.sock.send('connected '.encode("utf-8"))
 
@@ -84,18 +217,19 @@ class AuctionClient(object):
             print("Length of list of players received does not match numberbidders!")
             raise IOError
         if self.verbose:
-         print("List of players: %s" % str(' '.join(x[1:])))
+            print("List of players: %s" % str(' '.join(x[1:])))
 
         self.players = []
 
         for player in range(1, self.numberbidders + 1):
-          self.players.append(x[player])
+            self.players.append(x[player])
 
         self.sock.send('ready '.encode("utf-8"))
 
-        self.standings = {name: {artist : 0 for artist in self.artists} for name in self.players}
+        self.standings = {name: {artist: 0 for artist in self.artists}
+                          for name in self.players}
         for name in self.players:
-          self.standings[name]["money"] = self.maxbudget
+            self.standings[name]["money"] = self.maxbudget
 
     def play_auction(self):
         winnerarray = []
@@ -111,7 +245,8 @@ class AuctionClient(object):
                         self.auctionlist.append(currentitem)
                     if self.verbose:
                         print("Item on sale is %s" % currentitem)
-                    bid = self.determinebid(self.numberbidders, self.neededtowin, self.artists, self.values, len(winnerarray), self.auctionlist, winnerarray, winneramount, self.mybidderid, self.players, self.standings, self.winnerpays)
+                    bid = self.determinebid(self.numberbidders, self.neededtowin, self.artists, self.values, len(
+                        winnerarray), self.auctionlist, winnerarray, winneramount, self.mybidderid, self.players, self.standings, self.winnerpays)
                     if self.verbose:
                         print("Bidding: %d" % bid)
                     self.sock.send(str(bid).encode("utf-8"))
@@ -210,9 +345,10 @@ class AuctionClient(object):
 
     def first_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 1: First to buy wincondition of any artist wins, highest bidder pays own bid, auction order known."""
-        
+
         # Currently just returns a random bid
-        price =  AuctionStrategy.best_next_squence_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
+        price = best_next_squence_strategy(numberbidders, wincondition, artists, values, rd,
+                                           itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
         curr_item = itemsinauction[rd]
         print("myrobot offer: ", curr_item, price)
         return price
@@ -220,7 +356,8 @@ class AuctionClient(object):
     def second_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 2: First to buy wincondition of any artist wins, highest bidder pays own bid, auction order not known."""
 
-        price =  AuctionStrategy.second_highest_valuation_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
+        price = second_highest_valuation_strategy(numberbidders, wincondition, artists, values, rd,
+                                                  itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
         curr_item = itemsinauction[rd]
         print("myrobot offer: ", curr_item, price)
         return price
