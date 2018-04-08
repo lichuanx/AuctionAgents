@@ -1,7 +1,7 @@
 import socket
 import random
 import math
-
+import AuctionStrategy
 
 class AuctionClient(object):
     """A client for bidding with the AucionRoom"""
@@ -212,13 +212,18 @@ class AuctionClient(object):
         """Game 1: First to buy wincondition of any artist wins, highest bidder pays own bid, auction order known."""
         
         # Currently just returns a random bid
-        return self.random_bid(standings[mybidderid]['money'])
+        price =  AuctionStrategy.best_next_squence_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
+        curr_item = itemsinauction[rd]
+        print("myrobot offer: ", curr_item, price)
+        return price
 
     def second_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 2: First to buy wincondition of any artist wins, highest bidder pays own bid, auction order not known."""
 
-        # Currently just returns a random bid
-        return self.random_bid(standings[mybidderid]['money'])
+        price =  AuctionStrategy.second_highest_valuation_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
+        curr_item = itemsinauction[rd]
+        print("myrobot offer: ", curr_item, price)
+        return price
 
     def third_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
         """Game 3: Highest total value wins, highest bidder pays own bid, auction order known."""
