@@ -9,10 +9,11 @@ def evaluate_sequence(numberbidders, wincondition, artists, rd, itemsinauction, 
     art_count = {}
     for art in artists:
         art_count[art] = 0
-        purpose_score[art] = 0.0
+        purpose_score[art] = 0.0   #inital dictionary
 
     sum_score = 0
     inital_score = len(itemsinauction) - rd - 1
+    #evaluate each types of item by their >kth position
     for i in range(rd, len(itemsinauction)):
         item = itemsinauction[i]
         rate = 1/(potential_competitors[item]+1)
@@ -29,7 +30,8 @@ def evaluate_sequence(numberbidders, wincondition, artists, rd, itemsinauction, 
 
             if search_flag == len(artists):
                 break
-
+    
+    # normalize final score
     for art in artists:
         purpose_score[art] = purpose_score[art]/sum_score
 
@@ -41,7 +43,8 @@ def evaluate_purpose(players, artists, itemsinauction, winnerarray, mybidderid):
     purpose_score = {}
     for art in artists:
         purpose_score[art] = 0.0
-
+    
+    # count how many agents are your potential competitors
     for player_id in players:
         if player_id != mybidderid:
             if player_id in winnerarray:
@@ -60,7 +63,8 @@ def evaluate_purpose(players, artists, itemsinauction, winnerarray, mybidderid):
 
 def best_next_sequence_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):
     curr_item = itemsinauction[rd]
-
+    
+    #if already have a type, keep bid or bid 0
     if mybidderid in winnerarray:
         best_choice = itemsinauction[winnerarray.index(mybidderid)]
         if best_choice == curr_item and standings[mybidderid][best_choice] == (wincondition-1):
@@ -69,7 +73,7 @@ def best_next_sequence_strategy(numberbidders, wincondition, artists, values, rd
             return math.floor(standings[mybidderid]['money']/(wincondition-standings[mybidderid][best_choice]))
         else:
             return 0
-    else:
+    else:# find best choice of bid
 
         potential_competitors = evaluate_purpose(
             players, artists, itemsinauction, winnerarray, mybidderid)
@@ -99,6 +103,7 @@ def second_highest_valuation_strategy(numberbidders, wincondition, artists, valu
 
     other_max_valuation = 0
     other_min_valuation = -1
+    # find highest and lowest valution from other agents.
     for player in players:
         if player != mybidderid:
             private_va = math.floor(
@@ -109,7 +114,8 @@ def second_highest_valuation_strategy(numberbidders, wincondition, artists, valu
                 other_min_valuation = private_va
             elif private_va < other_min_valuation:
                 other_min_valuation = private_va
-
+    
+    # if my valuation is highest, then bid as second highest or bid lowest 
     if my_valuation >= other_max_valuation:
         if wincondition-standings[mybidderid][curr_item] == 1:
             return standings[mybidderid]["money"]
@@ -140,13 +146,16 @@ def first_price_highest_value_strategy(numberbidders, wincondition, artists, val
     already_gain_score = 0
     for art in artists:
       already_gain_score += standings[mybidderid][art]*values[art]
-
+    
+    # my own valuation on each score
     money_per_score = initial_budget/(half_total_score-already_gain_score)
     
     print(initial_budget)
     players_private_values = {}
+    # observe on first half value items
     if remain_score > half_total_score:
         return int(values[curr_item]*money_per_score)
+    # Evaluate other agents valuation, and bid second highest
     else:
         for player in players:
             wanted_score = half_total_score
@@ -188,7 +197,7 @@ def always_pay_my_valua_strategy(numberbidders, wincondition, artists, values, r
     for art in artists:
       already_gain_score += standings[mybidderid][art]*values[art]
     if already_gain_score > half_total_score:
-      return int(initial_budget*random.random()+1)
+      return int(initial_budget*random.random()+1)  
     money_per_score = 0
     if remain_score < half_total_score-already_gain_score:
         money_per_score = initial_budget/remain_score
