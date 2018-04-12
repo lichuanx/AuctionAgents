@@ -440,7 +440,7 @@ class AuctionClient(object):
         """Game 3: Highest total value wins, highest bidder pays own bid, auction order known."""
         price = first_price_highest_value_strategy(numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays)
         curr_item = itemsinauction[rd]
-        print("myrobot offer: ", curr_item, price)
+        #print("myrobot offer: ", curr_item, price)
         return price
 
     def fourth_bidding_strategy(self, numberbidders, wincondition, artists, values, rd, itemsinauction, winnerarray, winneramount, mybidderid, players, standings, winnerpays):

@@ -7,7 +7,7 @@ import time
 HOST = "localhost"
 ports = 8060
 numbidders = 3
-numtest = 2
+numtest = 1
 neededtowin = 0
 itemtypes = ['Picasso', 'Van_Gogh', 'Rembrandt', 'Da_Vinci']
 #numitems = {'Picasso': 10, 'Van_Gogh' : 10, 'Rembrandt' : 10, 'Da_Vinci' : 10}
@@ -16,7 +16,7 @@ auction_size = 200
 budget = 1000
 values = {'Picasso': 1, 'Van_Gogh' : 5, 'Rembrandt' : 10, 'Da_Vinci' : 20}
 announce_order = True
-winner_pays = 1
+winner_pays = 0
 
 args = (HOST, ports, numbidders, neededtowin, itemtypes, numitems, auction_size, budget, values, announce_order, winner_pays
 , )
